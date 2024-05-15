@@ -9,19 +9,22 @@ from tqdm import tqdm
 
 from depth_anything.dpt import DepthAnything
 from depth_anything.util.transform import Resize, NormalizeImage, PrepareForNet
+from stereo import *
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--img-path', type=str)
-    parser.add_argument('--outdir', type=str, default='./vis_depth')
-    parser.add_argument('--encoder', type=str, default='vitl', choices=['vits', 'vitb', 'vitl'])
+    # parser.add_argument('--img-path', type=str)
+    # parser.add_argument('--outdir', type=str, default='./vis_depth')
+    #parser.add_argument('--encoder', type=str, default='vitl', choices=['vits', 'vitb', 'vitl'])
     
     img_path = './source_images'
+    encoder = 'vitl'
+    outdir = './depth_images'
     # parser.add_argument('--pred-only', dest='pred_only', action='store_true', help='only display the prediction')
     # parser.add_argument('--grayscale', dest='grayscale', action='store_true', help='do not apply colorful palette')
     
-    args = parser.parse_args()
+    #args = parser.parse_args()
     
     margin_width = 50
     caption_height = 60
@@ -32,7 +35,7 @@ if __name__ == '__main__':
     
     DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
     
-    depth_anything = DepthAnything.from_pretrained('LiheYoung/depth_anything_{}14'.format(args.encoder)).to(DEVICE).eval()
+    depth_anything = DepthAnything.from_pretrained('LiheYoung/depth_anything_{}14'.format(encoder)).to(DEVICE).eval()
     
     total_params = sum(param.numel() for param in depth_anything.parameters())
     print('Total parameters: {:.2f}M'.format(total_params / 1e6))
@@ -51,18 +54,18 @@ if __name__ == '__main__':
         PrepareForNet(),
     ])
     
-    if os.path.isfile(args.img_path):
-        if args.img_path.endswith('txt'):
-            with open(args.img_path, 'r') as f:
+    if os.path.isfile(img_path):
+        if img_path.endswith('txt'):
+            with open(img_path, 'r') as f:
                 filenames = f.read().splitlines()
         else:
-            filenames = [args.img_path]
+            filenames = [img_path]
     else:
-        filenames = os.listdir(args.img_path)
-        filenames = [os.path.join(args.img_path, filename) for filename in filenames if not filename.startswith('.')]
+        filenames = os.listdir(img_path)
+        filenames = [os.path.join(img_path, filename) for filename in filenames if not filename.startswith('.')]
         filenames.sort()
     
-    os.makedirs(args.outdir, exist_ok=True)
+    os.makedirs(outdir, exist_ok=True)
     
     for filename in tqdm(filenames):
         raw_image = cv2.imread(filename)
@@ -87,8 +90,16 @@ if __name__ == '__main__':
         #     depth = cv2.applyColorMap(depth, cv2.COLORMAP_INFERNO)
         
         depth = np.repeat(depth[..., np.newaxis], 3, axis=-1)
+        # depth = cv2.blur(depth, (3, 3))
+        # depth = write_depth(depth, bits=2, reverse=False)
+        left_img = image
+        right_img = generate_stereo(left_img, depth)
+        stereo = np.hstack([left_img, right_img])
+        anaglyph = overlap(left_img, right_img)
+
         filename = os.path.basename(filename)
-        cv2.imwrite(os.path.join(args.outdir, filename[:filename.rfind('.')] + '_depth.png'), depth)
+        cv2.imwrite(os.path.join('./depth_images', filename[:filename.rfind('.')] + '_depth.png'), depth)
+        cv2.imwrite(os.path.join('./stereo_images', filename[:filename.rfind('.')] + '_stereo.png'), anaglyph)
 
         # if args.pred_only:
         #     cv2.imwrite(os.path.join(args.outdir, filename[:filename.rfind('.')] + '_depth.png'), depth)
