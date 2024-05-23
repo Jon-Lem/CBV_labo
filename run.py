@@ -13,19 +13,10 @@ from stereo import *
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    # parser.add_argument('--img-path', type=str)
-    # parser.add_argument('--outdir', type=str, default='./vis_depth')
-    #parser.add_argument('--encoder', type=str, default='vitl', choices=['vits', 'vitb', 'vitl'])
-    
+
     img_path = './source_images'
     encoder = 'vits'
     outdir = './depth_images'
-    # parser.add_argument('--pred-only', dest='pred_only', action='store_true', help='only display the prediction')
-    # parser.add_argument('--grayscale', dest='grayscale', action='store_true', help='do not apply colorful palette')
-    
-    #args = parser.parse_args()
-    
     margin_width = 50
     caption_height = 60
     
