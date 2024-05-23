@@ -1,1 +1,2 @@
-# Creating 3d images out of 2d images
+# Generating stereo images out of an input image using a depth map
+
